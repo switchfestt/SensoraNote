@@ -36,7 +36,6 @@ export function VoiceScheduleModal({ isOpen, onClose, onSuccess, initialDate }: 
   const {
     isListening,
     transcript,
-    interimTranscript,
     setTranscript,
     startListening,
     stopListening,
@@ -119,7 +118,7 @@ export function VoiceScheduleModal({ isOpen, onClose, onSuccess, initialDate }: 
 
   // Step 1: Parse and show preview for confirmation
   const handleParseAndPreview = async () => {
-    const fullText = (transcript + ' ' + interimTranscript).trim();
+    const fullText = transcript.trim();
     if (!fullText) {
       showToast(t('schedule.modal_empty_voice'), 'warning');
       return;
@@ -314,7 +313,7 @@ export function VoiceScheduleModal({ isOpen, onClose, onSuccess, initialDate }: 
 
                 <div className="relative">
                   <textarea
-                    value={transcript + (interimTranscript ? ' ' + interimTranscript : '')}
+                    value={transcript}
                     onChange={(e) => setTranscript(e.target.value)}
                     placeholder={t('schedule.modal_transcript_placeholder')}
                     rows={4}
@@ -401,7 +400,7 @@ export function VoiceScheduleModal({ isOpen, onClose, onSuccess, initialDate }: 
               <button
                 type="button"
                 onClick={handleParseAndPreview}
-                disabled={isProcessingAI || (!transcript.trim() && !interimTranscript.trim())}
+                disabled={isProcessingAI || !transcript.trim()}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-white text-[13.5px] font-['Manrope'] font-bold shadow-lg shadow-primary/25 hover:bg-primary/90 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isProcessingAI ? (

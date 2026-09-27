@@ -641,7 +641,7 @@ export default function ChatbotPage() {
       return;
     }
 
-    const spoken = (transcript + (interimTranscript ? (transcript ? ' ' : '') + interimTranscript : '')).trim();
+    const spoken = transcript.trim();
 
     stopListening();
     resetTranscript();

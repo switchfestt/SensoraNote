@@ -63,18 +63,15 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<LanguagePreference>(() => {
-    if (typeof window === 'undefined') return 'system';
+    if (typeof window === 'undefined') return 'id';
     const stored = safeLocalStorage.getItem('bayu-lang') as LanguagePreference | null;
-    return stored || 'system';
+    return stored && stored !== 'system' ? stored : 'id';
   });
 
   const [resolvedLanguage, setResolvedLanguage] = useState<LanguageCode>(() => {
     if (typeof window === 'undefined') return 'id';
     const stored = safeLocalStorage.getItem('bayu-lang') as LanguagePreference | null;
-    if (!stored || stored === 'system') {
-      return detectSystemLanguage();
-    }
-    return stored;
+    return stored && stored !== 'system' ? stored : 'id';
   });
   const [translations, setTranslations] = useState<any>(idTranslations);
   const [loading, setLoading] = useState(false);

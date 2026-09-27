@@ -7,6 +7,27 @@ interface IWindow extends Window {
   webkitSpeechRecognition?: any;
 }
 
+function appendFinalTranscript(existing: string, incoming: string): string {
+  const current = existing.trim();
+  const next = incoming.trim();
+  if (!current || !next) return current || next;
+
+  const currentWords = current.split(/\s+/);
+  const nextWords = next.split(/\s+/);
+  const normalize = (word: string) => word.toLocaleLowerCase();
+  const maxOverlap = Math.min(currentWords.length, nextWords.length);
+
+  for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+    const currentTail = currentWords.slice(-overlap).map(normalize).join(' ');
+    const nextHead = nextWords.slice(0, overlap).map(normalize).join(' ');
+    if (currentTail === nextHead) {
+      return [...currentWords, ...nextWords.slice(overlap)].join(' ');
+    }
+  }
+
+  return `${current} ${next}`;
+}
+
 const SPEECH_LANG_MAP: Record<string, string> = {
   id: 'id-ID',
   en: 'en-US',
@@ -76,8 +97,8 @@ export function useVoiceRecognition(initialLanguage?: string) {
 
   const recognitionRef = useRef<any>(null);
   const shouldKeepListeningRef = useRef(false);
-  
   const accumulatedFinalRef = useRef('');
+  const committedResultIndexesRef = useRef<Set<number>>(new Set());
 
   // Keep voiceLang updated when resolvedLanguage changes if not manually set
   useEffect(() => {
@@ -116,6 +137,7 @@ export function useVoiceRecognition(initialLanguage?: string) {
 
     try {
       const recognition = new SpeechRecognitionClass();
+      committedResultIndexesRef.current = new Set();
       recognition.lang = voiceLang;
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -129,15 +151,15 @@ export function useVoiceRecognition(initialLanguage?: string) {
       recognition.onresult = (event: any) => {
         let sessionInterim = '';
 
-        // resultIndex marks the first changed result. Re-reading all results
-        // appends prior final phrases again on Android Chrome and Edge.
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
           const text = (result[0]?.transcript || '').trim();
           if (!text) continue;
 
           if (result.isFinal) {
-            accumulatedFinalRef.current = [accumulatedFinalRef.current, text].filter(Boolean).join(' ').trim();
+            if (committedResultIndexesRef.current.has(i)) continue;
+            committedResultIndexesRef.current.add(i);
+            accumulatedFinalRef.current = appendFinalTranscript(accumulatedFinalRef.current, text);
           } else {
             sessionInterim = sessionInterim ? `${sessionInterim} ${text}` : text;
           }
