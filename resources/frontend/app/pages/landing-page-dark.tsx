@@ -10,7 +10,6 @@ import { BrutalistLoader } from '../components/brutalist-loader';
 import ApplicationLogo from '../components/ApplicationLogo';
 import AccordionGallery from '../components/AccordionGallery';
 import BorderGlow from '../components/BorderGlow';
-import { AiAccuracySection } from '../components/AiAccuracySection';
 import { useTranslation } from '../hooks/useTranslation';
 import { useAuth } from '../contexts/AuthContext';
 import { safeSessionStorage } from '../utils/safeStorage';
@@ -1761,11 +1760,6 @@ export function LandingPageDark() {
           </div>
         </div>
       </section>
-
-      {/* =============================================
-          6.5. AI ACCURACY & MODEL BENCHMARK SHOWCASE
-          ============================================= */}
-      <AiAccuracySection theme="dark" />
 
       {/* =============================================
           7. REFINED NOTEBOOK CTA SECTION

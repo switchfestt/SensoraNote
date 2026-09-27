@@ -77,12 +77,7 @@ export function useVoiceRecognition(initialLanguage?: string) {
   const recognitionRef = useRef<any>(null);
   const shouldKeepListeningRef = useRef(false);
   
-  // Accumulated committed text across auto-restarted sessions
   const accumulatedFinalRef = useRef('');
-  // Final text in the currently running session
-  const currentSessionFinalRef = useRef('');
-  // Interim text in the currently running session
-  const currentSessionInterimRef = useRef('');
 
   // Keep voiceLang updated when resolvedLanguage changes if not manually set
   useEffect(() => {
@@ -132,28 +127,23 @@ export function useVoiceRecognition(initialLanguage?: string) {
       };
 
       recognition.onresult = (event: any) => {
-        let sessionFinal = '';
         let sessionInterim = '';
 
-        // Safely iterate all results in current session without losing words
-        for (let i = 0; i < event.results.length; i++) {
+        // resultIndex marks the first changed result. Re-reading all results
+        // appends prior final phrases again on Android Chrome and Edge.
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
           const text = (result[0]?.transcript || '').trim();
           if (!text) continue;
 
           if (result.isFinal) {
-            sessionFinal = sessionFinal ? `${sessionFinal} ${text}` : text;
+            accumulatedFinalRef.current = [accumulatedFinalRef.current, text].filter(Boolean).join(' ').trim();
           } else {
             sessionInterim = sessionInterim ? `${sessionInterim} ${text}` : text;
           }
         }
 
-        currentSessionFinalRef.current = sessionFinal;
-        currentSessionInterimRef.current = sessionInterim;
-
-        // Combine committed text from previous auto-restart sessions + current session final
-        const totalFinal = [accumulatedFinalRef.current, sessionFinal].filter(Boolean).join(' ').trim();
-        setTranscript(totalFinal);
+        setTranscript(accumulatedFinalRef.current);
         setInterimTranscript(sessionInterim.trim());
       };
 
@@ -187,15 +177,6 @@ export function useVoiceRecognition(initialLanguage?: string) {
       };
 
       recognition.onend = () => {
-        // Commit current session's final text into accumulatedFinalRef
-        if (currentSessionFinalRef.current) {
-          accumulatedFinalRef.current = [
-            accumulatedFinalRef.current,
-            currentSessionFinalRef.current
-          ].filter(Boolean).join(' ').trim();
-          currentSessionFinalRef.current = '';
-        }
-        currentSessionInterimRef.current = '';
         setInterimTranscript('');
         setTranscript(accumulatedFinalRef.current);
 
@@ -287,23 +268,6 @@ export function useVoiceRecognition(initialLanguage?: string) {
         recognitionRef.current.stop();
       } catch (e) {}
     }
-    // Commit any remaining session final
-    if (currentSessionFinalRef.current) {
-      accumulatedFinalRef.current = [
-        accumulatedFinalRef.current,
-        currentSessionFinalRef.current
-      ].filter(Boolean).join(' ').trim();
-      currentSessionFinalRef.current = '';
-    }
-    // Also commit any remaining interim text so the very last spoken words aren't dropped
-    if (currentSessionInterimRef.current) {
-      accumulatedFinalRef.current = [
-        accumulatedFinalRef.current,
-        currentSessionInterimRef.current
-      ].filter(Boolean).join(' ').trim();
-      currentSessionInterimRef.current = '';
-    }
-    currentSessionInterimRef.current = '';
     setTranscript(accumulatedFinalRef.current);
     setInterimTranscript('');
     setIsListening(false);
@@ -319,8 +283,6 @@ export function useVoiceRecognition(initialLanguage?: string) {
 
   const resetTranscript = useCallback(() => {
     accumulatedFinalRef.current = '';
-    currentSessionFinalRef.current = '';
-    currentSessionInterimRef.current = '';
     setTranscript('');
     setInterimTranscript('');
     setError(null);
